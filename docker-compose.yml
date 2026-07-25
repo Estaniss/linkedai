@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: linkedai
+      POSTGRES_PASSWORD: linkedai
+      POSTGRES_DB: linkedai
+    ports:
+      - "5432:5432"
+    volumes:
+      - linkedai_postgres_data:/var/lib/postgresql/data
+      - ./docker/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql:ro
+    # build context do app abaixo é a raiz do projeto (.), Dockerfile fica em docker/Dockerfile
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linkedai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - linkedai_redis_data:/data
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: "postgresql://linkedai:linkedai@postgres:5432/linkedai?schema=public"
+      REDIS_URL: "redis://redis:6379"
+    ports:
+      - "3000:3000"
+
+volumes:
+  linkedai_postgres_data:
+  linkedai_redis_data:

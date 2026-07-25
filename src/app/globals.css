@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Paleta: base neutra fria + azul-petróleo como cor de ação (não o roxo genérico de IA) */
+  --background: 210 20% 98%;
+  --foreground: 215 28% 12%;
+  --primary: 199 89% 30%;
+  --primary-foreground: 0 0% 100%;
+  --muted: 210 16% 93%;
+  --muted-foreground: 215 14% 42%;
+  --border: 214 15% 88%;
+  --success: 152 55% 32%;
+  --warning: 38 92% 45%;
+  --destructive: 4 74% 45%;
+  --radius: 10px;
+}
+
+.dark {
+  --background: 218 26% 9%;
+  --foreground: 210 20% 96%;
+  --primary: 199 85% 55%;
+  --primary-foreground: 218 26% 9%;
+  --muted: 217 22% 16%;
+  --muted-foreground: 215 12% 65%;
+  --border: 217 18% 20%;
+  --success: 152 45% 45%;
+  --warning: 38 85% 55%;
+  --destructive: 4 70% 58%;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+}

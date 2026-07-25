@@ -1,0 +1,164 @@
+// Schema da Fase 1: Autenticação, Perfil, Currículo, Dashboard (esqueleto)
+// Fases seguintes adicionam: Job, Company, Application, AIAnalysis, Question, Answer, Prompt, ChatMessage, Log
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Seniority {
+  INTERN
+  JUNIOR
+  MID
+  SENIOR
+  STAFF
+  PRINCIPAL
+}
+
+enum WorkMode {
+  REMOTE
+  HYBRID
+  ONSITE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  image     String?
+  googleId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile  ProfessionalProfile?
+  resumes  Resume[]
+  settings UserSettings?
+
+  // NextAuth
+  accounts Account[]
+  sessions Session[]
+
+  @@map("users")
+}
+
+model ProfessionalProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  desiredRole      String
+  seniority        Seniority
+  salaryMin        Int?
+  salaryMax        Int?
+  currency         String     @default("BRL")
+  city             String
+  country          String
+  openToRelocation Boolean    @default(false)
+  workMode         WorkMode[]
+
+  technologies      String[]
+  languages         String[]
+  spokenLanguages   Json // [{ language: "English", level: "B2" }]
+  yearsOfExperience Int
+
+  desiredCompanies String[]
+  blockedCompanies String[]
+  keywords         String[]
+  forbiddenKeywords String[]
+  freeDescription  String?    @db.Text
+
+  linkedinUrl  String?
+  githubUrl    String?
+  portfolioUrl String?
+
+  // Gerado por IA (Fase 1: build-structured-profile.use-case)
+  structuredSummary String? @db.Text
+  specialties       String[]
+  hardSkills        String[]
+  softSkills        String[]
+  atsSummary        String? @db.Text
+  // pgvector habilitado via migration manual (ver prisma/migrations/xxxx_enable_pgvector)
+  // profileEmbedding Unsupported("vector(1536)")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("professional_profiles")
+}
+
+model Resume {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fileUrl    String
+  fileName   String
+  isOriginal Boolean @default(true)
+
+  extractedText String? @db.Text
+  parsedData    Json?
+
+  createdAt DateTime @default(now())
+
+  @@map("resumes")
+}
+
+model UserSettings {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  minimumScoreToApply   Int     @default(75)
+  dailyApplicationLimit Int     @default(20)
+  searchIntervalMinutes Int     @default(10)
+  autoApplyEnabled      Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+// --- Modelos padrão do NextAuth (adapter Prisma) ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
